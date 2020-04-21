@@ -25,11 +25,11 @@
     "Xpirit"
   ],
   "screenshots": [
-    { "path": "extension/Images/Screenshots/screenshot-in-logs.png" },
-    { "path": "extension/Images/Screenshots/1st-screenshot.png" },
-    { "path": "extension/Images/Screenshots/2nd-screenshot.png" },
-    { "path": "extension/Images/Screenshots/download-logs.png" },
-    { "path": "extension/Images/Screenshots/in-workflow.png" }
+    { "path": "extension/images/Screenshots/screenshot-in-logs.png" },
+    { "path": "extension/images/Screenshots/1st-screenshot.png" },
+    { "path": "extension/images/Screenshots/2nd-screenshot.png" },
+    { "path": "extension/images/Screenshots/download-logs.png" },
+    { "path": "extension/images/Screenshots/in-workflow.png" }
   ],
   "content": {
     "details": {
@@ -74,6 +74,10 @@
   "files": [
     {
       "path": "agent-screenshot"
+    },
+    {
+      "path": "extension/images/",
+      "addressable": true
     }
   ],
   "contributions": [
