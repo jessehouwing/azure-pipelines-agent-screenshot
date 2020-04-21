@@ -10,6 +10,18 @@ variables:
   vsix: '$(Build.ArtifactStagingDirectory)/vsix/agent-screenshot-$(Build.BuildNumber).vsix'
 
 steps:
+- task: replacetokens@3
+  inputs:
+    targetFiles: '**/*.json'
+    encoding: 'utf-8'
+    writeBOM: false
+    actionOnMissing: 'continue'
+    keepToken: false
+    tokenPrefix: '#{'
+    tokenSuffix: '}#'
+    useLegacyPattern: false
+    enableTelemetry: true
+
 - task: TfxInstaller@2
   inputs:
     version: 'v0.7.x'
