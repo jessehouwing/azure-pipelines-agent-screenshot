@@ -19,7 +19,7 @@ steps:
     rootFolder: '$(Build.SourcesDirectory)'
     outputPath: '$(vsix)'
     extensionVersion: '$(Build.BuildNumber)'
-    updateTasksVersion: false
+    updateTasksVersion: true
 
 - task: PublishAzureDevOpsExtension@2
   inputs:
@@ -27,7 +27,6 @@ steps:
     connectedServiceName: 'Jesse Houwing'
     fileType: 'vsix'
     vsixFile: '$(vsix)'
-    updateTasksVersion: true
     noWaitValidation: true
 
 - task: PublishPipelineArtifact@1
