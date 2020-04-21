@@ -9,7 +9,7 @@ $ConsoleMode = @{ MINIMIZED = 2; }
 $hWnd = [WPIA.ConsoleUtils]::GetConsoleWindow()
 $a = [WPIA.ConsoleUtils]::ShowWindow($hWnd, $ConsoleMode.MINIMIZED)
 
-$path = Get-VstsTaskVariable "Agent.TempDirectory"
+$path = Get-VstsTaskVariable -Name "Agent.TempDirectory"
 & "$PSScriptRoot\screenshot-cmd.exe" -o "$path\screenshot.png"
 
 Write-Host "##vso[task.uploadfile]$path\screenshot.png"
