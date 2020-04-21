@@ -32,6 +32,7 @@ steps:
     outputPath: '$(vsix)'
     extensionVersion: '$(Build.BuildNumber)'
     updateTasksVersion: true
+    extensionVisibility: 'public_preview'
 
 - task: PublishAzureDevOpsExtension@2
   inputs:
