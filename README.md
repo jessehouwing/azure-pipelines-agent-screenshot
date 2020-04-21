@@ -19,9 +19,11 @@ steps:
 The screenshot is added tothe build logs automatically:
 
 You can download the logs from the build summary after the build completes.
+
 ![download logs](./extension/images/screenshots/download-logs.png?raw=true)
 
 Each screenshot is named acording to the step in the pipeline.
+
 ![screenshot in zip](./extension/images/screenshots/screenshot-in-logs.png?raw=true)
 
 If you like this extension, please leave a review and feedback. If you'd have suggestions or an issue, please [file an issue to give me a chance to fix it](https://github.com/jessehouwing/jessehouwing/azure-pipelines-agent-screenshot/issues).
