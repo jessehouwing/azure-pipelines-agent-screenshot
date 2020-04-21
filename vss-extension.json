@@ -25,12 +25,11 @@
     "Xpirit"
   ],
   "screenshots": [
-    {
-      "path": "extension/Images/Screenshots/1st-screenshot.png"
-    },
-    {
-      "path": "extension/Images/Screenshots/2nd-screenshot.png"
-    }
+    { "path": "extension/Images/Screenshots/screenshot-in-logs.png" },
+    { "path": "extension/Images/Screenshots/1st-screenshot.png" },
+    { "path": "extension/Images/Screenshots/2nd-screenshot.png" },
+    { "path": "extension/Images/Screenshots/download-logs.png" },
+    { "path": "extension/Images/Screenshots/in-workflow.png" }
   ],
   "content": {
     "details": {

@@ -8,4 +8,12 @@ Ever wondered what your build agent was up to at a certain stage? this task take
 
 ![extension/images/screenshots/1st-screenshot.png]
 
+# Usage
+
+```
+steps:
+- task: agent-screenshot@1
+  condition: or(canceled(), failed())
+```
+
 If you like this extension, please leave a review and feedback. If you'd have suggestions or an issue, please [file an issue to give me a chance to fix it](https://github.com/jessehouwing/jessehouwing/azure-pipelines-agent-screenshot/issues).
