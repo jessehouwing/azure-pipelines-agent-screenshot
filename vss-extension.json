@@ -1,0 +1,92 @@
+{
+  "manifestVersion": 1,
+  "id": "agent-screenshot",
+  "name": "Agent Screenshot",
+  "version": "1.0.0",
+  "publisher": "jessehouwing",
+  "targets": [
+    {
+      "id": "Microsoft.VisualStudio.Services"
+    }
+  ],
+  "scope": [
+    "vso.build"
+  ],
+  "description": "Ever wondered what is happening on the agent?",
+  "categories": [
+    "Azure Pipelines"
+  ],
+  "tags": [
+    "Extension",
+    "Release",
+    "Build",
+    "Debug",
+    "Diagnostics",
+    "Xpirit"
+  ],
+  "screenshots": [
+    {
+      "path": "extension/Images/Screenshots/1st-screenshot.png"
+    },
+    {
+      "path": "extension/Images/Screenshots/2nd-screenshot.png"
+    }
+  ],
+  "content": {
+    "details": {
+      "path": "readme.md"
+    },
+    "license": {
+      "path": "LICENSE.md"
+    },
+    "privacy": {
+      "path": "PRIVACY.md"
+    }
+  },
+  "links": {
+    "support": {
+      "uri": "https://github.com/jessehouwing/azure-pipelines-agent-screenshot/issues"
+    },
+    "license": {
+      "uri": "https://github.com/jessehouwing/azure-pipelines-agent-screenshot/LICENSE.md"
+    },
+    "privacypolicy": {
+      "uri": "https://github.com/jessehouwing/azure-pipelines-agent-screenshot/blob/master/PRIVACY.md"
+    }
+  },
+  "badges": [
+    {
+      "href": "https://github.com/sponsors/jessehouwing",
+      "uri": "https://raw.githubusercontent.com/jessehouwing/azure-pipelines-agent-screenshot/master/extension/images/donate.png",
+      "description": "Sponsor me"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "uri": "https://github.com/jessehouwing/azure-pipelines-agent-screenshot"
+  },
+  "branding": {
+    "color": "rgb(36, 43, 50)",
+    "theme": "dark"
+  },
+  "icons": {
+    "default": "extension/images/extension-icon.png"
+  },
+  "files": [
+    {
+      "path": "agent-screenshot"
+    }
+  ],
+  "contributions": [
+    {
+      "id": "agent-screenshot",
+      "type": "ms.vss-distributed-task.task",
+      "targets": [
+        "ms.vss-distributed-task.tasks"
+      ],
+      "properties": {
+        "name": "agent-screenshot"
+      }
+    }
+  ]
+}
