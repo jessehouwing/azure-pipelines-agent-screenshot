@@ -24,4 +24,4 @@ Each screenshot is named acording to its location in the pipeline.
 
 ![screenshot in zip](https://raw.githubusercontent.com/jessehouwing/azure-pipelines-agent-screenshot/master/extension/images/Screenshots/screenshot-in-logs.png?raw=true)
 
-If you like this extension, please leave a review and feedback. If you'd have suggestions or an issue, please [file an issue to give me a chance to fix it](https://github.com/jessehouwing/jessehouwing/azure-pipelines-agent-screenshot/issues).
+If you like this extension, please leave a review and feedback. If you'd have suggestions or an issue, please [file an issue to give me a chance to fix it](https://github.com/jessehouwing/azure-pipelines-agent-screenshot/issues).
