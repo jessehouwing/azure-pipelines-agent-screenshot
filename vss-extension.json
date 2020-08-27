@@ -50,13 +50,13 @@
       "uri": "https://github.com/jessehouwing/azure-pipelines-agent-screenshot/LICENSE.md"
     },
     "privacypolicy": {
-      "uri": "https://github.com/jessehouwing/azure-pipelines-agent-screenshot/blob/master/PRIVACY.md"
+      "uri": "https://github.com/jessehouwing/azure-pipelines-agent-screenshot/blob/main/PRIVACY.md"
     }
   },
   "badges": [
     {
       "href": "https://github.com/sponsors/jessehouwing",
-      "uri": "https://raw.githubusercontent.com/jessehouwing/azure-pipelines-agent-screenshot/master/extension/images/donate.png",
+      "uri": "https://raw.githubusercontent.com/jessehouwing/azure-pipelines-agent-screenshot/main/extension/images/donate.png",
       "description": "Sponsor me"
     }
   ],
