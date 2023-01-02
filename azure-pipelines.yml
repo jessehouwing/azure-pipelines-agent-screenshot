@@ -22,11 +22,11 @@ steps:
     useLegacyPattern: false
     enableTelemetry: true
 
-- task: TfxInstaller@2
+- task: TfxInstaller@4
   inputs:
-    version: 'v0.7.x'
+    version: 'v0.x'
 
-- task: PackageAzureDevOpsExtension@2
+- task: PackageAzureDevOpsExtension@4
   inputs:
     rootFolder: '$(Build.SourcesDirectory)'
     outputPath: '$(vsix)'
@@ -34,7 +34,7 @@ steps:
     updateTasksVersion: true
     extensionVisibility: 'public_preview'
 
-- task: PublishAzureDevOpsExtension@2
+- task: PublishAzureDevOpsExtension@4
   inputs:
     connectTo: 'VsTeam'
     connectedServiceName: 'Jesse Houwing'
