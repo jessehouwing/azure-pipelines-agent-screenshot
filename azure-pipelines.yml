@@ -4,7 +4,7 @@ trigger:
 - main
 
 pool:
-  name: 'default'
+  name: 'windows-latest'
 
 variables:
   vsix: '$(Build.ArtifactStagingDirectory)/vsix/agent-screenshot-$(Build.BuildNumber).vsix'
