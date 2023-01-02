@@ -4,7 +4,7 @@ trigger:
 - main
 
 pool:
-  name: 'windows-latest'
+  vmImage: 'windows-2022'
 
 variables:
   vsix: '$(Build.ArtifactStagingDirectory)/vsix/agent-screenshot-$(Build.BuildNumber).vsix'
