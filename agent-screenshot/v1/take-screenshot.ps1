@@ -9,7 +9,7 @@ $ConsoleMode = @{ MINIMIZED = 2; }
 $hWnd = [WPIA.ConsoleUtils]::GetConsoleWindow()
 $a = [WPIA.ConsoleUtils]::ShowWindow($hWnd, $ConsoleMode.MINIMIZED)
 
-$tempPath = Get-VstsTaskVariable -Name "Agent.TempDirectory" || $env:temp
+$tempPath = Get-VstsTaskVariable -Name "Agent.TempDirectory"
 
 
 # Screenshot code borrowed from: https://techibee.com/powershell/powershell-script-to-take-a-screenshot-of-your-desktop/1626
