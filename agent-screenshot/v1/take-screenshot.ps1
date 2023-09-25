@@ -45,7 +45,7 @@ function Get-ScreenResolution {
 }
  
 $datetime = (Get-Date).tostring("dd-MM-yyyy-hh-mm-ss")
-$fileName = "{1}.png" -f $datetime
+$fileName = "{0}.png" -f $datetime
 $filePath = join-path $tempPath $fileName 
  
 [void] [Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms")
