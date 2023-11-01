@@ -8,6 +8,7 @@ pool:
 
 variables:
   vsix: '$(Build.ArtifactStagingDirectory)/vsix/agent-screenshot-$(Build.BuildNumber).vsix'
+  marketplaceServiceConnection: '24325a98-0d4b-4180-9936-c930a4156258' 
 
 steps:
 - task: replacetokens@5
@@ -34,10 +35,21 @@ steps:
     updateTasksVersion: true
     extensionVisibility: 'public_preview'
 
+- task: AzureCLI@2
+  displayName: 'Authenticate with Service Principal'
+  inputs:
+    azureSubscription: 'azure-devops-marketplace'
+    scriptType: 'pscore'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      $accessToken = az account get-access-token --resource 499b84ac-1321-427f-aa17-267ca6975798 --query "accessToken" --output tsv
+      write-host "##vso[task.setsecret]$accessToken"
+      write-host "##vso[task.setendpoint id=$env:MARKETPLACESERVICECONNECTION;field=authParameter;key=password]$accessToken"
+
 - task: PublishAzureDevOpsExtension@4
   inputs:
     connectTo: 'VsTeam'
-    connectedServiceName: 'Jesse Houwing'
+    connectedServiceName: $(marketplaceServiceConnection)
     fileType: 'vsix'
     vsixFile: '$(vsix)'
     noWaitValidation: true
