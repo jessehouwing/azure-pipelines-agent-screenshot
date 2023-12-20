@@ -22,7 +22,7 @@
     "Build",
     "Debug",
     "Diagnostics",
-    "Xpirit"
+    "xebia"
   ],
   "screenshots": [
     { "path": "extension/images/Screenshots/screenshot-in-logs.png" },
