@@ -11,7 +11,7 @@ variables:
   marketplaceServiceConnection: '24325a98-0d4b-4180-9936-c930a4156258' 
 
 steps:
-- task: replacetokens@5
+- task: replacetokens@6
   inputs:
     targetFiles: '**/*.json'
     encoding: 'utf-8'
