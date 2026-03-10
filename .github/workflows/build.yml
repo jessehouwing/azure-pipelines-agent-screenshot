@@ -41,6 +41,7 @@ jobs:
         operation: package
         extension-version: ${{ steps.version.outputs.proposed-version }}
         update-tasks-version: patch
+        extension-visibility: public
 
     - name: Publish Azure DevOps Extension
       id: publish
