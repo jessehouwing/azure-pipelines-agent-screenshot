@@ -12,7 +12,8 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+    environment: public
+
     steps:
     - uses: actions/checkout@v4
 
@@ -29,15 +30,6 @@ jobs:
       with:
         operation: query-version
         auth-type: oidc
-
-    - name: Replace tokens in JSON files
-      uses: cschleiden/replace-tokens@v1
-      with:
-        files: '["**/*.json"]'
-        tokenPrefix: '#{'
-        tokenSuffix: '}#'
-      env:
-        Build.BuildNumber: ${{ steps.version.outputs.proposed-version }}
 
     - name: Package Azure DevOps Extension
       id: package
