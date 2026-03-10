@@ -30,6 +30,9 @@ jobs:
       with:
         operation: query-version
         auth-type: oidc
+        publisher-id: "jessehouwing"
+        extension-id: "agent-screenshot"
+        version-action: 'Patch'
 
     - name: Package Azure DevOps Extension
       id: package
