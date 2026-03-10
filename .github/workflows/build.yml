@@ -36,7 +36,7 @@ jobs:
 
     - name: Package Azure DevOps Extension
       id: package
-      uses: jessehouwing/azdo-marketplace@main
+      uses: jessehouwing/azdo-marketplace@v6
       with:
         operation: package
         extension-version: ${{ steps.version.outputs.proposed-version }}
