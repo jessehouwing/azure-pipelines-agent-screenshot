@@ -12,7 +12,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    environment: public
+    environment: publisher-jessehouwing
 
     steps:
     - uses: actions/checkout@v4
