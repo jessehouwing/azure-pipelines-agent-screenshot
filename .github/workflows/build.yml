@@ -15,10 +15,10 @@ jobs:
     environment: publisher-jessehouwing
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
     - name: Azure Login (OIDC)
-      uses: azure/login@v2
+      uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2
       with:
         client-id: ${{ secrets.AZURE_CLIENT_ID }}
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -26,7 +26,7 @@ jobs:
 
     - name: Query Version
       id: version
-      uses: jessehouwing/azdo-marketplace@v6
+      uses: jessehouwing/azdo-marketplace@452e2d19b81542ae14b68e36469883b9499fca79 # v6
       with:
         operation: query-version
         auth-type: oidc
@@ -36,7 +36,7 @@ jobs:
 
     - name: Package Azure DevOps Extension
       id: package
-      uses: jessehouwing/azdo-marketplace@v6
+      uses: jessehouwing/azdo-marketplace@452e2d19b81542ae14b68e36469883b9499fca79 # v6
       with:
         operation: package
         extension-version: ${{ steps.version.outputs.proposed-version }}
@@ -45,7 +45,7 @@ jobs:
 
     - name: Publish Azure DevOps Extension
       id: publish
-      uses: jessehouwing/azdo-marketplace@v6
+      uses: jessehouwing/azdo-marketplace@452e2d19b81542ae14b68e36469883b9499fca79 # v6
       with:
         operation: publish
         auth-type: oidc
@@ -54,14 +54,14 @@ jobs:
         no-wait-validation: true
 
     - name: Wait for validation
-      uses: jessehouwing/azdo-marketplace@v6
+      uses: jessehouwing/azdo-marketplace@452e2d19b81542ae14b68e36469883b9499fca79 # v6
       with:
         operation: wait-for-validation
         auth-type: oidc
         vsix-path: ${{ steps.publish.outputs.vsix-path }}
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
       with:
         name: vsix
         path: ${{ steps.publish.outputs.vsix-path }}
