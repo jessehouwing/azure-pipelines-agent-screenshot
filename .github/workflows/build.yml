@@ -47,7 +47,8 @@ jobs:
 
         if ([version]$manifestVersion -gt [version]$marketplaceCurrentVersion) {
           "effective-version=$manifestVersion" >> $env:GITHUB_OUTPUT
-        else
+        }
+        else {
           "effective-version=$marketplaceProposedVersion" >> $env:GITHUB_OUTPUT
         }
 
