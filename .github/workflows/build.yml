@@ -36,19 +36,17 @@ jobs:
 
     - name: Select Version
       id: select-version
-      shell: bash
+      shell: pwsh
       run: |
-        manifest_version="$(jq -r '.version' vss-extension.json)"
-        marketplace_current_version="${{ steps.version.outputs.current-version }}"
-        marketplace_proposed_version="${{ steps.version.outputs.proposed-version }}"
+        $manifestVersion = (Get-Content -Path "vss-extension.json" -Raw | ConvertFrom-Json).version
+        $marketplaceCurrentVersion = "${{ steps.version.outputs.current-version }}"
+        $marketplaceProposedVersion = "${{ steps.version.outputs.proposed-version }}"
 
-        highest_version="$(printf '%s\n%s\n' "$manifest_version" "$marketplace_current_version" | sort -V | tail -n 1)"
-
-        if [[ "$highest_version" == "$manifest_version" && "$manifest_version" != "$marketplace_current_version" ]]; then
-          echo "effective-version=$manifest_version" >> "$GITHUB_OUTPUT"
+        if ([version]$manifestVersion -gt [version]$marketplaceCurrentVersion) {
+          "effective-version=$manifestVersion" >> $env:GITHUB_OUTPUT
         else
-          echo "effective-version=$marketplace_proposed_version" >> "$GITHUB_OUTPUT"
-        fi
+          "effective-version=$marketplaceProposedVersion" >> $env:GITHUB_OUTPUT
+        }
 
     - name: Package Azure DevOps Extension
       id: package
