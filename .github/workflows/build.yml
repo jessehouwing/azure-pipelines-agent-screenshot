@@ -37,10 +37,13 @@ jobs:
     - name: Select Version
       id: select-version
       shell: pwsh
+      env:
+        MARKETPLACE_CURRENT_VERSION: ${{ steps.version.outputs.current-version }}
+        MARKETPLACE_PROPOSED_VERSION: ${{ steps.version.outputs.proposed-version }}
       run: |
         $manifestVersion = (Get-Content -Path "vss-extension.json" -Raw | ConvertFrom-Json).version
-        $marketplaceCurrentVersion = "${{ steps.version.outputs.current-version }}"
-        $marketplaceProposedVersion = "${{ steps.version.outputs.proposed-version }}"
+        $marketplaceCurrentVersion = $env:MARKETPLACE_CURRENT_VERSION
+        $marketplaceProposedVersion = $env:MARKETPLACE_PROPOSED_VERSION
 
         if ([version]$manifestVersion -gt [version]$marketplaceCurrentVersion) {
           "effective-version=$manifestVersion" >> $env:GITHUB_OUTPUT
@@ -81,6 +84,8 @@ jobs:
         path: ${{ steps.publish.outputs.vsix-path }}
 
     - name: Create GitHub Release
-      run: gh release create "${{ steps.select-version.outputs.effective-version }}" "${{ steps.publish.outputs.vsix-path }}" --generate-notes --title "${{ steps.select-version.outputs.effective-version }}"
+      run: gh release create "$RELEASE_VERSION" "$VSIX_PATH" --generate-notes --title "$RELEASE_VERSION"
       env:
         GH_TOKEN: ${{ github.token }}
+        RELEASE_VERSION: ${{ steps.select-version.outputs.effective-version }}
+        VSIX_PATH: ${{ steps.publish.outputs.vsix-path }}
