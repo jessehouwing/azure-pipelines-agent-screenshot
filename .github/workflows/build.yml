@@ -34,12 +34,29 @@ jobs:
         extension-id: "agent-screenshot"
         version-action: 'Patch'
 
+    - name: Select Version
+      id: select-version
+      shell: pwsh
+      env:
+        MARKETPLACE_CURRENT_VERSION: ${{ steps.version.outputs.current-version }}
+        MARKETPLACE_PROPOSED_VERSION: ${{ steps.version.outputs.proposed-version }}
+      run: |
+        $manifestVersion = (Get-Content -Path "vss-extension.json" -Raw | ConvertFrom-Json).version
+        $marketplaceCurrentVersion = $env:MARKETPLACE_CURRENT_VERSION
+        $marketplaceProposedVersion = $env:MARKETPLACE_PROPOSED_VERSION
+
+        if ([version]$manifestVersion -gt [version]$marketplaceCurrentVersion) {
+          "effective-version=$manifestVersion" >> $env:GITHUB_OUTPUT
+        else
+          "effective-version=$marketplaceProposedVersion" >> $env:GITHUB_OUTPUT
+        }
+
     - name: Package Azure DevOps Extension
       id: package
       uses: jessehouwing/azdo-marketplace@7955202f92b6cef97faa904d305e6625fbbd0f8e # v6
       with:
         operation: package
-        extension-version: ${{ steps.version.outputs.proposed-version }}
+        extension-version: ${{ steps.select-version.outputs.effective-version }}
         update-tasks-version: major
         extension-visibility: public
 
@@ -67,6 +84,8 @@ jobs:
         path: ${{ steps.publish.outputs.vsix-path }}
 
     - name: Create GitHub Release
-      run: gh release create "${{ steps.version.outputs.proposed-version }}" "${{ steps.publish.outputs.vsix-path }}" --generate-notes --title "${{ steps.version.outputs.proposed-version }}"
+      run: gh release create "$RELEASE_VERSION" "$VSIX_PATH" --generate-notes --title "$RELEASE_VERSION"
       env:
         GH_TOKEN: ${{ github.token }}
+        RELEASE_VERSION: ${{ steps.select-version.outputs.effective-version }}
+        VSIX_PATH: ${{ steps.publish.outputs.vsix-path }}
