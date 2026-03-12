@@ -44,7 +44,7 @@ jobs:
       uses: jessehouwing/azdo-marketplace@432f9e95096a25d6a20177e9de2599721fc0ae16 # v6
       with:
         operation: package
-        extension-version: ${{ steps.select-version.outputs.effective-version }}
+        extension-version: ${{ steps.version.outputs.proposed-version }}
         update-tasks-version: major
         extension-visibility: public
 
