@@ -30,8 +30,7 @@ jobs:
       with:
         operation: query-version
         auth-type: oidc
-        publisher-id: "jessehouwing"
-        extension-id: "agent-screenshot"
+        use: manifest
         marketplace-version-action: 'Patch'
         version-action: 'Patch'
         version-source: |
