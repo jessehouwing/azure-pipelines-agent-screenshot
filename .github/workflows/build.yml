@@ -33,6 +33,7 @@ jobs:
         publisher-id: "jessehouwing"
         extension-id: "agent-screenshot"
         marketplace-version-action: 'Patch'
+        version-action: 'Patch'
         version-source: |
           manifest
           marketplace
