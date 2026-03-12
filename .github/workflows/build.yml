@@ -26,31 +26,17 @@ jobs:
 
     - name: Query Version
       id: version
-      uses: jessehouwing/azdo-marketplace@432f9e95096a25d6a20177e9de2599721fc0ae16 # v6
+      uses: jessehouwing/azdo-marketplace@main
       with:
         operation: query-version
         auth-type: oidc
         publisher-id: "jessehouwing"
         extension-id: "agent-screenshot"
-        version-action: 'Patch'
-
-    - name: Select Version
-      id: select-version
-      shell: pwsh
-      env:
-        MARKETPLACE_CURRENT_VERSION: ${{ steps.version.outputs.current-version }}
-        MARKETPLACE_PROPOSED_VERSION: ${{ steps.version.outputs.proposed-version }}
-      run: |
-        $manifestVersion = (Get-Content -Path "vss-extension.json" -Raw | ConvertFrom-Json).version
-        $marketplaceCurrentVersion = $env:MARKETPLACE_CURRENT_VERSION
-        $marketplaceProposedVersion = $env:MARKETPLACE_PROPOSED_VERSION
-
-        if ([version]$manifestVersion -gt [version]$marketplaceCurrentVersion) {
-          "effective-version=$manifestVersion" >> $env:GITHUB_OUTPUT
-        }
-        else {
-          "effective-version=$marketplaceProposedVersion" >> $env:GITHUB_OUTPUT
-        }
+        marketplace-version-action: 'Patch'
+        version-source: |
+          manifest
+          marketplace
+          1.1.0
 
     - name: Package Azure DevOps Extension
       id: package
