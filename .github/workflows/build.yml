@@ -32,11 +32,9 @@ jobs:
         auth-type: oidc
         use: manifest
         marketplace-version-action: 'Patch'
-        version-action: 'Patch'
         version-source: |
           manifest
           marketplace
-          1.1.0
 
     - name: Package Azure DevOps Extension
       id: package
