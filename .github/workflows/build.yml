@@ -66,11 +66,11 @@ jobs:
       uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
       with:
         name: vsix
-        path: ${{ steps.publish.outputs.vsix-path }}
+        path: ${{ steps.publish.outputs.vsix-file }}
 
     - name: Create GitHub Release
-      run: gh release create "$RELEASE_VERSION" "$VSIX_PATH" --generate-notes --title "$RELEASE_VERSION"
+      run: gh release create "$RELEASE_VERSION" "$VSIX_FILE" --generate-notes --title "$RELEASE_VERSION"
       env:
         GH_TOKEN: ${{ github.token }}
         RELEASE_VERSION: ${{ steps.select-version.outputs.effective-version }}
-        VSIX_PATH: ${{ steps.publish.outputs.vsix-path }}
+        VSIX_FILE: ${{ steps.publish.outputs.vsix-file }}
