@@ -38,7 +38,7 @@ jobs:
 
     - name: Package Azure DevOps Extension
       id: package
-      uses: jessehouwing/azdo-marketplace@432f9e95096a25d6a20177e9de2599721fc0ae16 # v6
+      uses: jessehouwing/azdo-marketplace@main # v6
       with:
         operation: package
         extension-version: ${{ steps.version.outputs.proposed-version }}
@@ -47,20 +47,20 @@ jobs:
 
     - name: Publish Azure DevOps Extension
       id: publish
-      uses: jessehouwing/azdo-marketplace@432f9e95096a25d6a20177e9de2599721fc0ae16 # v6
+      uses: jessehouwing/azdo-marketplace@main # v6
       with:
         operation: publish
         auth-type: oidc
         use: vsix
-        vsix-file: ${{ steps.package.outputs.vsix-path }}
+        vsix-file: ${{ steps.package.outputs.vsix-file }}
         no-wait-validation: true
 
     - name: Wait for validation
-      uses: jessehouwing/azdo-marketplace@432f9e95096a25d6a20177e9de2599721fc0ae16 # v6
+      uses: jessehouwing/azdo-marketplace@main # v6
       with:
         operation: wait-for-validation
         auth-type: oidc
-        vsix-path: ${{ steps.publish.outputs.vsix-path }}
+        vsix-file: ${{ steps.publish.outputs.vsix-file }}
 
     - name: Upload artifact
       uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
