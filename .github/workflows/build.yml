@@ -72,5 +72,5 @@ jobs:
       run: gh release create "$RELEASE_VERSION" "$VSIX_FILE" --generate-notes --title "$RELEASE_VERSION"
       env:
         GH_TOKEN: ${{ github.token }}
-        RELEASE_VERSION: ${{ steps.select-version.outputs.effective-version }}
+        RELEASE_VERSION: ${{ steps.version.outputs.proposed-version }}
         VSIX_FILE: ${{ steps.publish.outputs.vsix-file }}
