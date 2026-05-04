@@ -26,7 +26,7 @@ jobs:
 
     - name: Query Version
       id: version
-      uses: jessehouwing/azdo-marketplace@4e00d408425554e7efe12973a67dd9437b3623d1 # main
+      uses: jessehouwing/azdo-marketplace@12cdb4a008081d8cc353c37c5c434370277f7adf # main
       with:
         operation: query-version
         auth-type: oidc
@@ -38,7 +38,7 @@ jobs:
 
     - name: Package Azure DevOps Extension
       id: package
-      uses: jessehouwing/azdo-marketplace@4e00d408425554e7efe12973a67dd9437b3623d1 # main
+      uses: jessehouwing/azdo-marketplace@12cdb4a008081d8cc353c37c5c434370277f7adf # main
       with:
         operation: package
         extension-version: ${{ steps.version.outputs.proposed-version }}
@@ -47,7 +47,7 @@ jobs:
 
     - name: Publish Azure DevOps Extension
       id: publish
-      uses: jessehouwing/azdo-marketplace@4e00d408425554e7efe12973a67dd9437b3623d1 # main
+      uses: jessehouwing/azdo-marketplace@12cdb4a008081d8cc353c37c5c434370277f7adf # main
       with:
         operation: publish
         auth-type: oidc
@@ -56,7 +56,7 @@ jobs:
         no-wait-validation: true
 
     - name: Wait for validation
-      uses: jessehouwing/azdo-marketplace@4e00d408425554e7efe12973a67dd9437b3623d1 # main
+      uses: jessehouwing/azdo-marketplace@12cdb4a008081d8cc353c37c5c434370277f7adf # main
       with:
         operation: wait-for-validation
         auth-type: oidc
