@@ -271,8 +271,9 @@ jobs:
       fail-fast: false
       matrix:
         vmImage:
-          - ubuntu-latest
-          - windows-latest
+          - windows-2022
+          - windows-2025
+          - windows-2025-vs2026
     environment:
       name: publisher-jessehouwing
       url: ${{ steps.run-azdo-pipeline.outputs.pipeline_run_url }}
