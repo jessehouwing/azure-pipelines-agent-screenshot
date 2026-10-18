@@ -2,7 +2,7 @@
   "manifestVersion": 1,
   "id": "agent-screenshot",
   "name": "Agent Screenshot",
-  "version": "1.1.0",
+  "version": "1.1.17",
   "publisher": "jessehouwing",
   "targets": [
     {
@@ -25,11 +25,21 @@
     "xebia"
   ],
   "screenshots": [
-    { "path": "extension/images/Screenshots/screenshot-in-logs.png" },
-    { "path": "extension/images/Screenshots/1st-screenshot.png" },
-    { "path": "extension/images/Screenshots/2nd-screenshot.png" },
-    { "path": "extension/images/Screenshots/download-logs.png" },
-    { "path": "extension/images/Screenshots/in-workflow.png" }
+    {
+      "path": "extension/images/Screenshots/screenshot-in-logs.png"
+    },
+    {
+      "path": "extension/images/Screenshots/1st-screenshot.png"
+    },
+    {
+      "path": "extension/images/Screenshots/2nd-screenshot.png"
+    },
+    {
+      "path": "extension/images/Screenshots/download-logs.png"
+    },
+    {
+      "path": "extension/images/Screenshots/in-workflow.png"
+    }
   ],
   "content": {
     "details": {

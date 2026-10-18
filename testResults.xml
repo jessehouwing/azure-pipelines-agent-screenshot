@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<test-results xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="nunit_schema_2.5.xsd" name="Pester" total="5" errors="0" failures="0" not-run="0" inconclusive="0" ignored="0" skipped="0" invalid="0" date="2026-10-18" time="20:52:38">
+  <environment platform="Microsoft Windows Server 2025 Datacenter|C:\Windows|\Device\Harddisk0\Partition4" user-domain="runnervm0xl3a" machine-name="runnervm0xl3a" nunit-version="2.5.8.0" cwd="D:\a\azure-pipelines-agent-screenshot\azure-pipelines-agent-screenshot" clr-version="10.0.12" user="runneradmin" os-version="10.0.26100" />
+  <culture-info current-culture="en-US" current-uiculture="en-US" />
+  <test-suite type="TestFixture" name="Pester" executed="True" result="Success" success="True" time="1.0107" asserts="0" description="Pester">
+    <results>
+      <test-suite type="TestFixture" name="D:\a\azure-pipelines-agent-screenshot\azure-pipelines-agent-screenshot\agent-screenshot\v1\take-screenshot.Tests.ps1" executed="True" result="Success" success="True" time="1.0107" asserts="0" description="D:\a\azure-pipelines-agent-screenshot\azure-pipelines-agent-screenshot\agent-screenshot\v1\take-screenshot.Tests.ps1">
+        <results>
+          <test-suite type="TestFixture" name="agent-screenshot task definition" executed="True" result="Success" success="True" time="0.2425" asserts="0" description="agent-screenshot task definition">
+            <results>
+              <test-case description="has a valid task.json pointing at an existing script" name="agent-screenshot task definition.has a valid task.json pointing at an existing script" time="0.1831" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="has a valid GUID id and version" name="agent-screenshot task definition.has a valid GUID id and version" time="0.0263" asserts="0" success="True" result="Success" executed="True" />
+            </results>
+          </test-suite>
+          <test-suite type="TestFixture" name="take-screenshot.ps1" executed="True" result="Success" success="True" time="0.4885" asserts="0" description="take-screenshot.ps1">
+            <results>
+              <test-case description="parses without syntax errors" name="take-screenshot.ps1.parses without syntax errors" time="0.2137" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="defines the screenshot helper functions" name="take-screenshot.ps1.defines the screenshot helper functions" time="0.0198" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="uploads the screenshot as a task file" name="take-screenshot.ps1.uploads the screenshot as a task file" time="0.0064" asserts="0" success="True" result="Success" executed="True" />
+            </results>
+          </test-suite>
+        </results>
+      </test-suite>
+    </results>
+  </test-suite>
+</test-results>
