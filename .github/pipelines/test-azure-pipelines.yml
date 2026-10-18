@@ -28,7 +28,7 @@ jobs:
   steps:
   - checkout: self
 
-  - task: AgentScreenshot@1
+  - task: agent-screenshot@1
     displayName: 'Test AgentScreenshot - Take screenshot'
 
   - powershell: |
@@ -48,5 +48,5 @@ jobs:
       }
     displayName: 'Verify screenshot was taken'
 
-  - task: AgentScreenshot@1
+  - task: agent-screenshot@1
     displayName: 'Test AgentScreenshot - Second screenshot (verify repeated use)'
