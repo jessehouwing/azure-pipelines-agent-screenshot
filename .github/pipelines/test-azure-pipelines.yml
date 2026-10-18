@@ -2,7 +2,7 @@
 #
 # Triggered by the release workflow to validate the AgentScreenshot task
 # against a real Azure Pipelines build after installing the preview extension
-# in the jessehouwing-dev organization.
+# in the jessehouwing organization.
 #
 # Required:
 #   Agent must be running on Windows with a display (use windows-latest hosted agent)
