@@ -3,10 +3,20 @@
   "extends": [
     "local>jessehouwing/.github:renovate-config"
   ],
+  "minimumReleaseAge": "3 days",
   "azure-pipelines": {
-    "enabled": true
+    "enabled": true,
+    "fileMatch": [
+      "(^|/)azure-pipelines\\.ya?ml$",
+      "(^|/)\\.github/pipelines/.*\\.ya?ml$"
+    ]
   },
-  
+  "npm": {
+    "enabled": false
+  },
+  "github-actions": {
+    "enabled": false
+  },
   "packageRules": [ 
     {
       "matchDatasources": ["azure-pipelines-tasks"],

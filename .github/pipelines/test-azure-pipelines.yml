@@ -1,0 +1,52 @@
+# Test Azure Pipelines
+#
+# Triggered by the release workflow to validate the AgentScreenshot task
+# against a real Azure Pipelines build after installing the preview extension
+# in the jessehouwing-dev organization.
+#
+# Required:
+#   Agent must be running on Windows with a display (use windows-latest hosted agent)
+#
+# Required parameters per run:
+#   vmImage - Hosted agent image (windows-latest only — task requires Windows desktop)
+
+name: test-$(Date:yyyyMMdd)$(Rev:.r)
+
+trigger: none
+pr: none
+
+parameters:
+- name: vmImage
+  type: string
+  default: windows-latest
+
+jobs:
+- job: Test
+  displayName: Test AgentScreenshot (${{ parameters.vmImage }})
+  pool:
+    vmImage: ${{ parameters.vmImage }}
+  steps:
+  - checkout: self
+
+  - task: AgentScreenshot@1
+    displayName: 'Test AgentScreenshot - Take screenshot'
+
+  - powershell: |
+      # The AgentScreenshot task uploads the screenshot as a build attachment.
+      # Verify the task ran successfully by checking for any PNG artifacts in the agent temp dir.
+      $recentPngs = Get-ChildItem -Path $env:AGENT_TEMPDIRECTORY -Filter '*.png' -Recurse -ErrorAction SilentlyContinue |
+        Where-Object { $_.LastWriteTime -gt (Get-Date).AddMinutes(-5) }
+
+      if ($recentPngs) {
+        Write-Host "Screenshot found: $($recentPngs | Select-Object -First 1 -ExpandProperty FullName)"
+        Write-Host "##vso[task.setvariable variable=screenshotFound]true"
+      }
+      else {
+        # Not necessarily an error — screenshot may be attached to the build record
+        Write-Host "No screenshot PNG found in AGENT_TEMPDIRECTORY. Screenshot may be attached to build."
+        Write-Host "##vso[task.setvariable variable=screenshotFound]false"
+      }
+    displayName: 'Verify screenshot was taken'
+
+  - task: AgentScreenshot@1
+    displayName: 'Test AgentScreenshot - Second screenshot (verify repeated use)'

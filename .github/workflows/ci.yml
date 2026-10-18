@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions: {}
+
+jobs:
+  validate:
+    name: Validate extension packaging
+    runs-on: windows-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@v2.22.1
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@v7.0.1
+
+      - name: Run Pester tests
+        shell: pwsh
+        run: |
+          $stopMarker = [guid]::NewGuid().ToString()
+          Write-Host "::stop-commands::$stopMarker"
+          Install-Module -Name Pester -MinimumVersion 5.0 -Force -Scope CurrentUser
+          Invoke-Pester -Path './agent-screenshot' -Output Detailed -CI
+          Write-Host "::$stopMarker::"
+
+      - name: Validate extension packaging
+        uses: jessehouwing/azdo-marketplace/package@v6.3.16
+        with:
+          extension-version: 0.0.0
+          extension-visibility: private
+          output-path: ${{ runner.temp }}
