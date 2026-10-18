@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions: {}
+
+jobs:
+  validate:
+    name: Validate extension packaging
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Validate extension packaging
+        uses: jessehouwing/azdo-marketplace/package@170b55423619315f13173e85bbdd9a37d4bb73ec # v6.2.4
+        with:
+          extension-version: 0.0.0
+          extension-visibility: private
+          output-path: ${{ runner.temp }}
