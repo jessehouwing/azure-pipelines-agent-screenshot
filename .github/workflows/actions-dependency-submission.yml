@@ -20,7 +20,11 @@ jobs:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@v2.22.1
         with:
-          egress-policy: audit
+          egress-policy: block
+          allowed-endpoints: >
+            api.github.com:443
+            github.com:443
+            release-assets.githubusercontent.com:443
 
       - uses: actions/checkout@v7.0.1
       - uses: jessehouwing/actions-dependency-submission@v2.0.2
