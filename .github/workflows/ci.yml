@@ -20,6 +20,17 @@ jobs:
         uses: step-security/harden-runner@v2.22.1
         with:
           egress-policy: audit
+          allowed-endpoints: >
+            cacerts.digicert.com:80
+            cdn.powershellgallery.com:443
+            crl.microsoft.com:80
+            dns.msftncsi.com:443
+            github.com:443
+            hosted-compute-watchdog-prod-iad-02.githubapp.com:443
+            ocsp.digicert.com:80
+            ocsp.sectigo.com:80
+            www.microsoft.com:80
+            www.powershellgallery.com:443
 
       - uses: actions/checkout@v7.0.1
 
