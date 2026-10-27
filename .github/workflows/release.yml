@@ -55,7 +55,7 @@ jobs:
 
     steps:
       - name: Harden runner
-        uses: step-security/harden-runner@v2.22.1
+        uses: step-security/harden-runner@v2.22.2
         with:
           egress-policy: audit
           allowed-endpoints: >
@@ -210,7 +210,7 @@ jobs:
 
     steps:
       - name: Harden runner
-        uses: step-security/harden-runner@v2.22.1
+        uses: step-security/harden-runner@v2.22.2
         with:
           egress-policy: audit
           allowed-endpoints: >
@@ -316,7 +316,7 @@ jobs:
 
     steps:
       - name: Harden runner
-        uses: step-security/harden-runner@v2.22.1
+        uses: step-security/harden-runner@v2.22.2
         with:
           egress-policy: block
           allowed-endpoints: >
@@ -509,7 +509,7 @@ jobs:
 
     steps:
       - name: Harden runner
-        uses: step-security/harden-runner@v2.22.1
+        uses: step-security/harden-runner@v2.22.2
         with:
           egress-policy: audit
           allowed-endpoints: >
@@ -607,7 +607,7 @@ jobs:
 
     steps:
       - name: Harden runner
-        uses: step-security/harden-runner@v2.22.1
+        uses: step-security/harden-runner@v2.22.2
         with:
           egress-policy: block
           allowed-endpoints: >
@@ -673,7 +673,7 @@ jobs:
 
     steps:
       - name: Harden runner
-        uses: step-security/harden-runner@v2.22.1
+        uses: step-security/harden-runner@v2.22.2
         with:
           egress-policy: block
           allowed-endpoints: >
