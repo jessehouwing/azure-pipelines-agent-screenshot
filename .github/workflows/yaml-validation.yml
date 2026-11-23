@@ -1,0 +1,39 @@
+# This workflow is managed by gh actions-lock.
+
+name: YAML validation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: ['**']
+
+permissions: {}
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@v2.23.0
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version-file: '.python-version'
+
+      - name: Install validation tools
+        run: python3 -m pip install -r requirements-dev.txt
+
+      - name: Validate YAML syntax
+        run: pre-commit run check-yaml --all-files
+
+      - name: Validate GitHub Actions workflow schemas
+        run: find .github/workflows -type f \( -name '*.yml' -o -name '*.yaml' \) -print0 | xargs -0 check-jsonschema --builtin-schema github-workflows
