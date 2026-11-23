@@ -21,6 +21,10 @@
     {
       "matchDatasources": ["azure-pipelines-tasks"],
       "extractVersion": "^(?<version>\\d+)"
+    },
+    {
+      "matchDatasources": ["node-version"],
+      "allowedVersions": "<25.0.0"
     }
   ]
 }
