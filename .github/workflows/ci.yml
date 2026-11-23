@@ -17,7 +17,7 @@ jobs:
 
     steps:
       - name: Harden runner
-        uses: step-security/harden-runner@v2.22.1
+        uses: step-security/harden-runner@v2.22.4
         with:
           egress-policy: audit
           allowed-endpoints: >
@@ -44,7 +44,7 @@ jobs:
           Write-Host "::$stopMarker::"
 
       - name: Validate extension packaging
-        uses: jessehouwing/azdo-marketplace/package@v6.3.16
+        uses: jessehouwing/azdo-marketplace/package@v6.3.17
         with:
           extension-version: 0.0.0
           extension-visibility: private
