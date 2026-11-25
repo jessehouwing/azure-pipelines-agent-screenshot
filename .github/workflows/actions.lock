@@ -19,7 +19,6 @@ workflows:
         - 'actions/upload-artifact@v7.0.2'
         - 'azure/login@v3.1.0'
         - 'jessehouwing/azdo-marketplace@v6.4.1'
-        - 'softprops/action-gh-release@v3.0.4'
         - 'step-security/harden-runner@v2.23.0'
     '.github/workflows/yaml-validation.yml':
         - 'actions/checkout@v7.0.1'
@@ -88,11 +87,6 @@ dependencies:
         commit: 'sha1-e112952a289a937980a8c3016f5d3ace2c58a3f8'
         owner_id: 4173387
         repo_id: 1158033287
-    'softprops/action-gh-release@v3.0.4':
-        ref: 'v3.0.4'
-        commit: 'sha1-8a0cd651e5b2365bd640854a3fa5dfc70e4875f3'
-        owner_id: 2242
-        repo_id: 204253808
     'step-security/harden-runner@v2.23.0':
         ref: 'v2.23.0'
         commit: 'sha1-aebdcf6156ab6691adf63218240e476564a1ed4c'

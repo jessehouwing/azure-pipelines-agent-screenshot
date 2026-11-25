@@ -30,6 +30,10 @@ on:
 
 permissions: {}
 
+concurrency:
+  group: extension-release
+  cancel-in-progress: false
+
 env:
   PUBLISHER_ID: jessehouwing
   EXTENSION_ID: agent-screenshot
@@ -52,6 +56,8 @@ jobs:
       branch: release/v${{ steps.query-version.outputs.proposed-version }}
       vsix-file-name: ${{ steps.package.outputs.vsix-file-name }}
       vsix-attestation-url: ${{ steps.attest-vsix.outputs.attestation-url }}
+      major: ${{ steps.release-major.outputs.major }}
+      commit: ${{ steps.push-release.outputs.commit }}
 
     steps:
       - name: Harden runner
@@ -86,6 +92,9 @@ jobs:
         shell: pwsh
         run: |
           $version = ""
+          if ($env:GH_REF_NAME -ne 'main' -and $env:GH_REF_NAME -notmatch '^release/v\d+\.\d+\.\d+$') {
+            throw 'Releases must be dispatched from main or a release/vX.Y.Z branch.'
+          }
           if ($env:GH_EVENT_NAME -eq "workflow_dispatch" -and $env:INPUT_VERSION -ne "") {
             $version = $env:INPUT_VERSION
           }
@@ -93,8 +102,7 @@ jobs:
             $version = $Matches[1]
           }
           if ($version -ne "" -and $version -notmatch '^\d+\.\d+\.\d+$') {
-            Write-Warning "Input version '$version' is not in X.Y.Z format — ignoring"
-            $version = ""
+            throw "Input version '$version' is not in X.Y.Z format."
           }
           "version=$version" >> $env:GITHUB_OUTPUT
 
@@ -117,7 +125,18 @@ jobs:
             marketplace
           marketplace-version-action: Patch
 
-      - uses: actions/checkout@v7.0.1
+      - name: Extract release major
+        id: release-major
+        env:
+          RELEASE_VERSION: ${{ steps.query-version.outputs.proposed-version }}
+        shell: pwsh
+        run: |
+          if ($env:RELEASE_VERSION -notmatch '^(\d+)\.\d+\.\d+$') {
+            throw 'The proposed release version is not in X.Y.Z format.'
+          }
+          "major=$($Matches[1])" >> $env:GITHUB_OUTPUT
+
+      - uses: actions/checkout@v7.0.1 # zizmor: ignore[artipacked] -- this job pushes the release branch; only the packaged VSIX is uploaded
         with:
           ref: main
           fetch-depth: 0
@@ -128,26 +147,32 @@ jobs:
         shell: pwsh
         run: |
           $branch = "release/v$env:PROPOSED_VERSION"
-          git ls-remote --exit-code --heads origin "$branch" *> $null
-          if ($LASTEXITCODE -eq 0) {
+          $existingBranch = git ls-remote --heads origin "$branch"
+          if ($LASTEXITCODE -ne 0) { throw 'Unable to query release branch.' }
+          if ($existingBranch) {
             Write-Host "Branch $branch already exists, checking it out"
             git fetch origin "$branch"
+            if ($LASTEXITCODE -ne 0) { throw 'Unable to fetch release branch.' }
             git checkout "$branch"
+            if ($LASTEXITCODE -ne 0) { throw 'Unable to check out release branch.' }
             git pull origin "$branch"
           }
           else {
             Write-Host "Creating branch $branch from main"
             git checkout -b "$branch"
           }
+          if ($LASTEXITCODE -ne 0) { throw 'Unable to check out release branch.' }
 
       - name: Run Pester tests
         shell: pwsh
         run: |
           $stopMarker = [guid]::NewGuid().ToString()
           Write-Host "::stop-commands::$stopMarker"
-          Install-Module -Name Pester -MinimumVersion 5.0 -Force -Scope CurrentUser
-          Invoke-Pester -Path './agent-screenshot' -Output Detailed -CI
-          Write-Host "::$stopMarker::"
+          try {
+            Install-Module -Name Pester -MinimumVersion 5.0 -Force -Scope CurrentUser
+            Invoke-Pester -Path './agent-screenshot' -Output Detailed -CI
+          }
+          finally { Write-Host "::$stopMarker::" }
 
       - name: Package extension
         uses: jessehouwing/azdo-marketplace/package@v6.4.1
@@ -175,6 +200,7 @@ jobs:
           if-no-files-found: error
 
       - name: Commit and push changes
+        id: push-release
         env:
           PROPOSED_VERSION: ${{ steps.query-version.outputs.proposed-version }}
         shell: pwsh
@@ -189,8 +215,13 @@ jobs:
           }
           else {
             git commit -m "chore: prepare release v$env:PROPOSED_VERSION"
+            if ($LASTEXITCODE -ne 0) { throw 'Unable to commit release changes.' }
           }
           git push origin "HEAD:$branch"
+          if ($LASTEXITCODE -ne 0) { throw 'Unable to push release branch.' }
+          $commit = git rev-parse HEAD
+          if ($LASTEXITCODE -ne 0 -or $commit -notmatch '^[0-9a-f]{40}$') { throw 'Unable to resolve release commit.' }
+          "commit=$commit" >> $env:GITHUB_OUTPUT
 
   # ---------------------------------------------------------------------------
   # Job 2: Preview release to Azure DevOps (jessehouwing org)
@@ -207,6 +238,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
+      attestations: write
 
     steps:
       - name: Harden runner
@@ -230,7 +262,7 @@ jobs:
 
       - uses: actions/checkout@v7.0.1
         with:
-          ref: release/v${{ needs.prepare-release.outputs.version }}
+          ref: ${{ needs.prepare-release.outputs.commit }}
           persist-credentials: false
 
       - name: Download VSIX artifact
@@ -239,6 +271,15 @@ jobs:
           name: vsix
           path: ${{ runner.temp }}/vsix
 
+      - name: Verify production VSIX provenance
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VSIX_FILE: ${{ runner.temp }}/vsix/${{ needs.prepare-release.outputs.vsix-file-name }}
+        shell: pwsh
+        run: |
+          gh attestation verify "$env:VSIX_FILE" --repo "$env:GITHUB_REPOSITORY" --signer-workflow "$env:GITHUB_REPOSITORY/.github/workflows/release.yml"
+          if ($LASTEXITCODE -ne 0) { throw 'Production VSIX provenance verification failed.' }
+
       - name: Azure login (OIDC)
         uses: azure/login@v3.1.0
         with:
@@ -246,31 +287,42 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           allow-no-subscriptions: true
 
-      - name: Publish preview extension
-        uses: jessehouwing/azdo-marketplace/publish@v6.4.1
-        id: publish
+      - name: Patch preview VSIX
+        uses: jessehouwing/azdo-marketplace/patch@v6.4.1
+        id: patch
         with:
-          auth-type: oidc
-          use: vsix
           vsix-file: ${{ runner.temp }}/vsix/${{ needs.prepare-release.outputs.vsix-file-name }}
+          output-path: ${{ runner.temp }}/preview-vsix
           publisher-id: ${{ env.PUBLISHER_ID }}
           extension-id: ${{ env.EXTENSION_ID }}-dev
           extension-visibility: private_preview
           update-tasks-id: true
+
+      - name: Attest preview VSIX
+        uses: actions/attest-build-provenance@v4.2.2
+        with:
+          subject-path: ${{ steps.patch.outputs.vsix-file }}
+
+      - name: Publish preview extension
+        uses: jessehouwing/azdo-marketplace/publish@v6.4.1
+        with:
+          auth-type: oidc
+          use: vsix
+          vsix-file: ${{ steps.patch.outputs.vsix-file }}
           no-wait-validation: true
 
       - name: Wait for validation
         uses: jessehouwing/azdo-marketplace/wait-for-validation@v6.4.1
         with:
           auth-type: oidc
-          vsix-file: ${{ steps.publish.outputs.vsix-file }}
+          vsix-file: ${{ steps.patch.outputs.vsix-file }}
           timeout-minutes: '30'
 
       - name: Share extension
         uses: jessehouwing/azdo-marketplace/share@v6.4.1
         with:
           auth-type: oidc
-          vsix-file: ${{ steps.publish.outputs.vsix-file }}
+          vsix-file: ${{ steps.patch.outputs.vsix-file }}
           accounts: |
             https://dev.azure.com/jessehouwing
 
@@ -278,7 +330,7 @@ jobs:
         uses: jessehouwing/azdo-marketplace/install@v6.4.1
         with:
           auth-type: oidc
-          vsix-file: ${{ steps.publish.outputs.vsix-file }}
+          vsix-file: ${{ steps.patch.outputs.vsix-file }}
           accounts: |
             https://dev.azure.com/jessehouwing
 
@@ -286,7 +338,7 @@ jobs:
         uses: jessehouwing/azdo-marketplace/wait-for-installation@v6.4.1
         with:
           auth-type: oidc
-          vsix-file: ${{ steps.publish.outputs.vsix-file }}
+          vsix-file: ${{ steps.patch.outputs.vsix-file }}
           timeout-minutes: '30'
           accounts: |
             https://dev.azure.com/jessehouwing
@@ -346,6 +398,7 @@ jobs:
           $token = az account get-access-token `
             --resource 499b84ac-1321-427f-aa17-267ca6975798 `
             --query accessToken --output tsv
+          if ($LASTEXITCODE -ne 0 -or -not $token) { throw 'Azure DevOps token acquisition failed.' }
           Write-Host "::add-mask::$token"
           echo "azdo_token=$token" >> $env:GITHUB_OUTPUT
 
@@ -355,6 +408,8 @@ jobs:
           AZURE_DEVOPS_EXT_PAT: ${{ steps.get-azdo-token.outputs.azdo_token }}
           AZDO_PIPELINE_NAME: ${{ vars.AZDO_TEST_PIPELINE_NAME }}
           RELEASE_VERSION: ${{ needs.prepare-release.outputs.version }}
+          RELEASE_COMMIT: ${{ needs.prepare-release.outputs.commit }}
+          TASK_MAJOR: ${{ needs.prepare-release.outputs.major }}
           AZDO_ORGANIZATION: https://dev.azure.com/jessehouwing
           AZDO_PROJECT: azure-devops-extensions
           TEST_VM_IMAGE: ${{ matrix.vmImage }}
@@ -413,11 +468,13 @@ jobs:
             'pipelines', 'run',
             '--name', $pipelineName,
             '--branch', $branch,
+            '--commit-id', $env:RELEASE_COMMIT,
             '--org', $organization,
             '--project', $project,
             '--detect', 'false',
             '--parameters',
             "vmImage=$($env:TEST_VM_IMAGE)",
+            "taskMajor=$($env:TASK_MAJOR)",
             '--query', 'id',
             '--output', 'tsv'
           )).Trim()
@@ -496,7 +553,7 @@ jobs:
   # ---------------------------------------------------------------------------
   publish-production:
     name: Publish to marketplace
-    needs: [prepare-release, preview-release, test-azure-pipelines]
+    needs: [prepare-release, preview-release, test-azure-pipelines, create-release]
     if: ${{ !inputs.dry_run }}
     runs-on: windows-latest
     environment:
@@ -532,7 +589,7 @@ jobs:
 
       - uses: actions/checkout@v7.0.1
         with:
-          ref: release/v${{ needs.prepare-release.outputs.version }}
+          ref: ${{ needs.prepare-release.outputs.commit }}
           persist-credentials: false
 
       - name: Download VSIX artifact
@@ -545,7 +602,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VSIX_FILE: ${{ runner.temp }}/vsix/${{ needs.prepare-release.outputs.vsix-file-name }}
-        run: gh attestation verify "$VSIX_FILE" --repo "$GITHUB_REPOSITORY"
+        run: gh attestation verify "$VSIX_FILE" --repo "$GITHUB_REPOSITORY" --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml"
         shell: bash
 
       - name: Azure login (OIDC)
@@ -569,11 +626,11 @@ jobs:
             0.0.0
           marketplace-version-action: None
 
-      - name: Skip publish (version already deployed)
+      - name: Stop if version is already deployed
         if: steps.check-version.outputs.current-version == needs.prepare-release.outputs.version
         env:
           RELEASE_VERSION: ${{ needs.prepare-release.outputs.version }}
-        run: Write-Host "Version $env:RELEASE_VERSION is already published, skipping publish and re-checking validation."
+        run: throw "Version $env:RELEASE_VERSION already exists. Verify the deployed artifact before resuming manually."
         shell: pwsh
 
       - name: Publish production extension
@@ -598,9 +655,8 @@ jobs:
   # Job 5: Create GitHub release
   # ---------------------------------------------------------------------------
   create-release:
-    name: Create GitHub release
-    needs: [prepare-release, publish-production]
-    if: ${{ !inputs.dry_run }}
+    name: Create GitHub draft release
+    needs: [prepare-release, preview-release, test-azure-pipelines]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -618,9 +674,9 @@ jobs:
             tuf-repo.github.com:443
             uploads.github.com:443
 
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@v7.0.1 # zizmor: ignore[artipacked] -- this job pushes the exact release tag
         with:
-          ref: release/v${{ needs.prepare-release.outputs.version }}
+          ref: ${{ needs.prepare-release.outputs.commit }}
 
       - name: Download VSIX artifact
         uses: actions/download-artifact@v8.0.2
@@ -632,7 +688,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VSIX_FILE: ${{ runner.temp }}/vsix/${{ needs.prepare-release.outputs.vsix-file-name }}
-        run: gh attestation verify "$VSIX_FILE" --repo "$GITHUB_REPOSITORY"
+        run: gh attestation verify "$VSIX_FILE" --repo "$GITHUB_REPOSITORY" --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml"
         shell: bash
 
       - name: Create and push tag
@@ -641,30 +697,61 @@ jobs:
         shell: pwsh
         run: |
           $version = "v$env:RELEASE_VERSION"
+          $existingTag = git ls-remote --tags origin "refs/tags/$version"
+          if ($LASTEXITCODE -ne 0) { throw 'Unable to query existing release tag.' }
+          if ($existingTag) { throw "Tag $version already exists. Inspect the existing release before resuming." }
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "v$env:RELEASE_VERSION" -m "Release v$env:RELEASE_VERSION"
-          git push origin "v$env:RELEASE_VERSION"
+          git tag -a "$version" -m "Release $version"
+          if ($LASTEXITCODE -ne 0) { throw "Unable to create tag $version." }
+          git push origin "$version"
+          if ($LASTEXITCODE -ne 0) { throw "Unable to push tag $version." }
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v3.0.4
+      - name: Create GitHub draft release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ needs.prepare-release.outputs.version }}
+          VSIX_FILE: ${{ runner.temp }}/vsix/${{ needs.prepare-release.outputs.vsix-file-name }}
+          ATTESTATION_URL: ${{ needs.prepare-release.outputs.vsix-attestation-url }}
+        run: |
+          $version = "v$env:RELEASE_VERSION"
+          $notes = "Build provenance attestation: $env:ATTESTATION_URL"
+          gh release create "$version" "$env:VSIX_FILE" --repo "$env:GITHUB_REPOSITORY" --verify-tag --draft --title "$version" --generate-notes --notes "$notes"
+          if ($LASTEXITCODE -ne 0) { throw 'Unable to create the draft GitHub release.' }
+
+  publish-github-release:
+    name: Publish GitHub release
+    needs: [prepare-release, create-release, publish-production]
+    if: ${{ !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@v2.23.0
         with:
-          tag_name: v${{ needs.prepare-release.outputs.version }}
-          name: v${{ needs.prepare-release.outputs.version }}
-          generate_release_notes: true
-          body: |
-            Build provenance attestation: ${{ needs.prepare-release.outputs.vsix-attestation-url }}
-            Verify with: `gh attestation verify <vsix> --repo ${{ github.repository }}`
-          files: ${{ runner.temp }}/vsix/${{ needs.prepare-release.outputs.vsix-file-name }}
+          egress-policy: block
+          allowed-endpoints: >
+            api.github.com:443
+            github.com:443
+      - name: Publish draft release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ needs.prepare-release.outputs.version }}
+        run: |
+          gh release edit "v$env:RELEASE_VERSION" --repo "$env:GITHUB_REPOSITORY" --draft=false
+          if ($LASTEXITCODE -ne 0) { throw 'Unable to publish the draft GitHub release.' }
 
   # ---------------------------------------------------------------------------
   # Job 6: Cleanup preview extension after successful production release
   # ---------------------------------------------------------------------------
   cleanup-preview:
     name: Cleanup preview extension
-    needs: [prepare-release, publish-production]
+    needs: [prepare-release, publish-production, publish-github-release]
     runs-on: ubuntu-latest
-    if: always() && needs.publish-production.result == 'success'
+    if: always() && needs.publish-production.result == 'success' && needs.publish-github-release.result == 'success'
     environment: publisher-jessehouwing
 
     permissions:

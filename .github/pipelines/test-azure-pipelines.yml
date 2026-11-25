@@ -19,6 +19,9 @@ parameters:
 - name: vmImage
   type: string
   default: windows-latest
+- name: taskMajor
+  type: string
+  default: '1'
 
 jobs:
 - job: Test
@@ -28,7 +31,8 @@ jobs:
   steps:
   - checkout: self
 
-  - task: agent-screenshot@1
+  # UUID v5 for jessehouwing.agent-screenshot-dev.agent-screenshot.
+  - task: 62773010-9df5-58aa-af0f-0eaded3f6301@${{ parameters.taskMajor }}
     displayName: 'Test AgentScreenshot - Take screenshot'
 
   - powershell: |
@@ -37,16 +41,16 @@ jobs:
       $recentPngs = Get-ChildItem -Path $env:AGENT_TEMPDIRECTORY -Filter '*.png' -Recurse -ErrorAction SilentlyContinue |
         Where-Object { $_.LastWriteTime -gt (Get-Date).AddMinutes(-5) }
 
-      if ($recentPngs) {
-        Write-Host "Screenshot found: $($recentPngs | Select-Object -First 1 -ExpandProperty FullName)"
-        Write-Host "##vso[task.setvariable variable=screenshotFound]true"
+      if (-not $recentPngs) { throw 'No screenshot PNG found in AGENT_TEMPDIRECTORY.' }
+      $screenshot = $recentPngs | Select-Object -First 1
+      Add-Type -AssemblyName System.Drawing
+      $image = [System.Drawing.Image]::FromFile($screenshot.FullName)
+      try {
+        if ($image.Width -le 0 -or $image.Height -le 0) { throw 'Screenshot has invalid dimensions.' }
+        Write-Host "Screenshot found: $($screenshot.FullName) ($($image.Width)x$($image.Height))"
       }
-      else {
-        # Not necessarily an error — screenshot may be attached to the build record
-        Write-Host "No screenshot PNG found in AGENT_TEMPDIRECTORY. Screenshot may be attached to build."
-        Write-Host "##vso[task.setvariable variable=screenshotFound]false"
-      }
+      finally { $image.Dispose() }
     displayName: 'Verify screenshot was taken'
 
-  - task: agent-screenshot@1
+  - task: 62773010-9df5-58aa-af0f-0eaded3f6301@${{ parameters.taskMajor }}
     displayName: 'Test AgentScreenshot - Second screenshot (verify repeated use)'
