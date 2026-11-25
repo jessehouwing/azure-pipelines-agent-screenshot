@@ -1,4 +1,4 @@
 # Python tooling used by CI. Dependabot manages these pins.
 check-jsonschema==0.39.0
 pre-commit==4.7.0
-zizmor==1.32.0
+zizmor==1.33.0
