@@ -33,15 +33,22 @@ jobs:
             www.powershellgallery.com:443
 
       - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Run Pester tests
         shell: pwsh
         run: |
           $stopMarker = [guid]::NewGuid().ToString()
           Write-Host "::stop-commands::$stopMarker"
-          Install-Module -Name Pester -MinimumVersion 5.0 -Force -Scope CurrentUser
-          Invoke-Pester -Path './agent-screenshot' -Output Detailed -CI
-          Write-Host "::$stopMarker::"
+          try {
+            Install-Module -Name Pester -MinimumVersion 5.0 -Force -Scope CurrentUser
+            $testPaths = @("$env:GITHUB_WORKSPACE/agent-screenshot", "$env:GITHUB_WORKSPACE/.github/scripts")
+            Push-Location $env:RUNNER_TEMP
+            try { Invoke-Pester -Path $testPaths -Output Detailed -CI }
+            finally { Pop-Location }
+          }
+          finally { Write-Host "::$stopMarker::" }
 
       - name: Validate extension packaging
         uses: jessehouwing/azdo-marketplace/package@v6.4.1

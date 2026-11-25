@@ -170,7 +170,10 @@ jobs:
           Write-Host "::stop-commands::$stopMarker"
           try {
             Install-Module -Name Pester -MinimumVersion 5.0 -Force -Scope CurrentUser
-            Invoke-Pester -Path './agent-screenshot' -Output Detailed -CI
+            $testPaths = @("$env:GITHUB_WORKSPACE/agent-screenshot", "$env:GITHUB_WORKSPACE/.github/scripts")
+            Push-Location $env:RUNNER_TEMP
+            try { Invoke-Pester -Path $testPaths -Output Detailed -CI }
+            finally { Pop-Location }
           }
           finally { Write-Host "::$stopMarker::" }
 
@@ -222,6 +225,13 @@ jobs:
           $commit = git rev-parse HEAD
           if ($LASTEXITCODE -ne 0 -or $commit -notmatch '^[0-9a-f]{40}$') { throw 'Unable to resolve release commit.' }
           "commit=$commit" >> $env:GITHUB_OUTPUT
+
+      - name: Attest production candidate identity
+        uses: actions/attest-build-provenance@v4.2.2
+        with:
+          subject-path: ${{ steps.package.outputs.vsix-file }}
+          predicate-type: https://github.com/jessehouwing/azure-pipelines-agent-screenshot/attestations/release-candidate/v1
+          predicate: ${{ format('{{"commit":"{0}","version":"{1}","kind":"production"}}', steps.push-release.outputs.commit, steps.query-version.outputs.proposed-version) }}
 
   # ---------------------------------------------------------------------------
   # Job 2: Preview release to Azure DevOps (jessehouwing org)
@@ -280,6 +290,27 @@ jobs:
           gh attestation verify "$env:VSIX_FILE" --repo "$env:GITHUB_REPOSITORY" --signer-workflow "$env:GITHUB_REPOSITORY/.github/workflows/release.yml"
           if ($LASTEXITCODE -ne 0) { throw 'Production VSIX provenance verification failed.' }
 
+      - name: Verify production candidate identity
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VSIX_FILE: ${{ runner.temp }}/vsix/${{ needs.prepare-release.outputs.vsix-file-name }}
+          RELEASE_COMMIT: ${{ needs.prepare-release.outputs.commit }}
+          RELEASE_VERSION: ${{ needs.prepare-release.outputs.version }}
+        run: |
+          & ./.github/scripts/verify-release-candidate.ps1 `
+            -File "$env:VSIX_FILE" -Repository "$env:GITHUB_REPOSITORY" `
+            -Commit "$env:RELEASE_COMMIT" -Version "$env:RELEASE_VERSION" -Kind production
+
+      - name: Record production VSIX digest
+        id: production-digest
+        shell: pwsh
+        env:
+          VSIX_FILE: ${{ runner.temp }}/vsix/${{ needs.prepare-release.outputs.vsix-file-name }}
+        run: |
+          $digest = (Get-FileHash -LiteralPath $env:VSIX_FILE -Algorithm SHA256).Hash.ToLowerInvariant()
+          "sha256=$digest" >> $env:GITHUB_OUTPUT
+
       - name: Azure login (OIDC)
         uses: azure/login@v3.1.0
         with:
@@ -287,7 +318,18 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           allow-no-subscriptions: true
 
+      - name: Check preview marketplace version
+        id: check-version
+        uses: jessehouwing/azdo-marketplace/query-version@v6.4.1
+        with:
+          auth-type: oidc
+          publisher-id: ${{ env.PUBLISHER_ID }}
+          extension-id: ${{ env.EXTENSION_ID }}-dev
+          version-source: marketplace
+          marketplace-version-action: None
+
       - name: Patch preview VSIX
+        if: steps.check-version.outputs.current-version != needs.prepare-release.outputs.version
         uses: jessehouwing/azdo-marketplace/patch@v6.4.1
         id: patch
         with:
@@ -299,11 +341,47 @@ jobs:
           update-tasks-id: true
 
       - name: Attest preview VSIX
+        if: steps.check-version.outputs.current-version != needs.prepare-release.outputs.version
         uses: actions/attest-build-provenance@v4.2.2
         with:
           subject-path: ${{ steps.patch.outputs.vsix-file }}
 
+      - name: Attest preview candidate identity
+        if: steps.check-version.outputs.current-version != needs.prepare-release.outputs.version
+        uses: actions/attest-build-provenance@v4.2.2
+        with:
+          subject-path: ${{ steps.patch.outputs.vsix-file }}
+          predicate-type: https://github.com/jessehouwing/azure-pipelines-agent-screenshot/attestations/release-candidate/v1
+          predicate: ${{ format('{{"commit":"{0}","version":"{1}","kind":"preview","productionSha256":"{2}"}}', needs.prepare-release.outputs.commit, needs.prepare-release.outputs.version, steps.production-digest.outputs.sha256) }}
+
+      - name: Download existing preview VSIX
+        id: download
+        if: steps.check-version.outputs.current-version == needs.prepare-release.outputs.version
+        uses: jessehouwing/azdo-marketplace/download-vsix@v6.4.1
+        with:
+          auth-type: oidc
+          publisher-id: ${{ env.PUBLISHER_ID }}
+          extension-id: ${{ env.EXTENSION_ID }}-dev
+          version: ${{ needs.prepare-release.outputs.version }}
+          output-path: ${{ runner.temp }}/preview-vsix
+
+      - name: Verify existing preview candidate identity
+        if: steps.check-version.outputs.current-version == needs.prepare-release.outputs.version
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VSIX_FILE: ${{ steps.download.outputs.vsix-file }}
+          RELEASE_COMMIT: ${{ needs.prepare-release.outputs.commit }}
+          RELEASE_VERSION: ${{ needs.prepare-release.outputs.version }}
+          PRODUCTION_DIGEST: ${{ steps.production-digest.outputs.sha256 }}
+        run: |
+          & ./.github/scripts/verify-release-candidate.ps1 `
+            -File "$env:VSIX_FILE" -Repository "$env:GITHUB_REPOSITORY" `
+            -Commit "$env:RELEASE_COMMIT" -Version "$env:RELEASE_VERSION" -Kind preview `
+            -ProductionDigest "$env:PRODUCTION_DIGEST"
+
       - name: Publish preview extension
+        if: steps.check-version.outputs.current-version != needs.prepare-release.outputs.version
         uses: jessehouwing/azdo-marketplace/publish@v6.4.1
         with:
           auth-type: oidc
@@ -315,14 +393,14 @@ jobs:
         uses: jessehouwing/azdo-marketplace/wait-for-validation@v6.4.1
         with:
           auth-type: oidc
-          vsix-file: ${{ steps.patch.outputs.vsix-file }}
+          vsix-file: ${{ steps.patch.outputs.vsix-file || steps.download.outputs.vsix-file }}
           timeout-minutes: '30'
 
       - name: Share extension
         uses: jessehouwing/azdo-marketplace/share@v6.4.1
         with:
           auth-type: oidc
-          vsix-file: ${{ steps.patch.outputs.vsix-file }}
+          vsix-file: ${{ steps.patch.outputs.vsix-file || steps.download.outputs.vsix-file }}
           accounts: |
             https://dev.azure.com/jessehouwing
 
@@ -330,7 +408,7 @@ jobs:
         uses: jessehouwing/azdo-marketplace/install@v6.4.1
         with:
           auth-type: oidc
-          vsix-file: ${{ steps.patch.outputs.vsix-file }}
+          vsix-file: ${{ steps.patch.outputs.vsix-file || steps.download.outputs.vsix-file }}
           accounts: |
             https://dev.azure.com/jessehouwing
 
@@ -338,7 +416,7 @@ jobs:
         uses: jessehouwing/azdo-marketplace/wait-for-installation@v6.4.1
         with:
           auth-type: oidc
-          vsix-file: ${{ steps.patch.outputs.vsix-file }}
+          vsix-file: ${{ steps.patch.outputs.vsix-file || steps.download.outputs.vsix-file }}
           timeout-minutes: '30'
           accounts: |
             https://dev.azure.com/jessehouwing
@@ -605,6 +683,18 @@ jobs:
         run: gh attestation verify "$VSIX_FILE" --repo "$GITHUB_REPOSITORY" --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml"
         shell: bash
 
+      - name: Verify production candidate identity
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VSIX_FILE: ${{ runner.temp }}/vsix/${{ needs.prepare-release.outputs.vsix-file-name }}
+          RELEASE_COMMIT: ${{ needs.prepare-release.outputs.commit }}
+          RELEASE_VERSION: ${{ needs.prepare-release.outputs.version }}
+        run: |
+          & ./.github/scripts/verify-release-candidate.ps1 `
+            -File "$env:VSIX_FILE" -Repository "$env:GITHUB_REPOSITORY" `
+            -Commit "$env:RELEASE_COMMIT" -Version "$env:RELEASE_VERSION" -Kind production
+
       - name: Azure login (OIDC)
         uses: azure/login@v3.1.0
         with:
@@ -621,17 +711,37 @@ jobs:
           auth-type: oidc
           publisher-id: ${{ env.PUBLISHER_ID }}
           extension-id: ${{ env.EXTENSION_ID }}
-          version-source: |
-            marketplace
-            0.0.0
+          version-source: marketplace
           marketplace-version-action: None
 
-      - name: Stop if version is already deployed
+      - name: Download existing production VSIX
+        id: download
+        if: steps.check-version.outputs.current-version == needs.prepare-release.outputs.version
+        uses: jessehouwing/azdo-marketplace/download-vsix@v6.4.1
+        with:
+          auth-type: oidc
+          publisher-id: ${{ env.PUBLISHER_ID }}
+          extension-id: ${{ env.EXTENSION_ID }}
+          version: ${{ needs.prepare-release.outputs.version }}
+          output-path: ${{ runner.temp }}/deployed-vsix
+
+      - name: Verify existing production artifact
         if: steps.check-version.outputs.current-version == needs.prepare-release.outputs.version
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEPLOYED_VSIX: ${{ steps.download.outputs.vsix-file }}
+          CANDIDATE_VSIX: ${{ runner.temp }}/vsix/${{ needs.prepare-release.outputs.vsix-file-name }}
+          RELEASE_COMMIT: ${{ needs.prepare-release.outputs.commit }}
           RELEASE_VERSION: ${{ needs.prepare-release.outputs.version }}
-        run: throw "Version $env:RELEASE_VERSION already exists. Verify the deployed artifact before resuming manually."
         shell: pwsh
+        run: |
+          & ./.github/scripts/verify-release-candidate.ps1 `
+            -File "$env:DEPLOYED_VSIX" -Repository "$env:GITHUB_REPOSITORY" `
+            -Commit "$env:RELEASE_COMMIT" -Version "$env:RELEASE_VERSION" -Kind production
+          if ((Get-FileHash -LiteralPath $env:DEPLOYED_VSIX -Algorithm SHA256).Hash -cne
+              (Get-FileHash -LiteralPath $env:CANDIDATE_VSIX -Algorithm SHA256).Hash) {
+            throw 'The deployed production VSIX differs from the verified release artifact.'
+          }
 
       - name: Publish production extension
         uses: jessehouwing/azdo-marketplace/publish@v6.4.1
@@ -691,23 +801,33 @@ jobs:
         run: gh attestation verify "$VSIX_FILE" --repo "$GITHUB_REPOSITORY" --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml"
         shell: bash
 
-      - name: Create and push tag
+      - name: Verify production candidate identity
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VSIX_FILE: ${{ runner.temp }}/vsix/${{ needs.prepare-release.outputs.vsix-file-name }}
+          RELEASE_COMMIT: ${{ needs.prepare-release.outputs.commit }}
+          RELEASE_VERSION: ${{ needs.prepare-release.outputs.version }}
+        run: |
+          & ./.github/scripts/verify-release-candidate.ps1 `
+            -File "$env:VSIX_FILE" -Repository "$env:GITHUB_REPOSITORY" `
+            -Commit "$env:RELEASE_COMMIT" -Version "$env:RELEASE_VERSION" -Kind production
+
+      - name: Check release state and create tag
+        id: release-state
         env:
           RELEASE_VERSION: ${{ needs.prepare-release.outputs.version }}
+          RELEASE_COMMIT: ${{ needs.prepare-release.outputs.commit }}
+          VSIX_FILE: ${{ runner.temp }}/vsix/${{ needs.prepare-release.outputs.vsix-file-name }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: pwsh
         run: |
-          $version = "v$env:RELEASE_VERSION"
-          $existingTag = git ls-remote --tags origin "refs/tags/$version"
-          if ($LASTEXITCODE -ne 0) { throw 'Unable to query existing release tag.' }
-          if ($existingTag) { throw "Tag $version already exists. Inspect the existing release before resuming." }
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "$version" -m "Release $version"
-          if ($LASTEXITCODE -ne 0) { throw "Unable to create tag $version." }
-          git push origin "$version"
-          if ($LASTEXITCODE -ne 0) { throw "Unable to push tag $version." }
+          & ./.github/scripts/check-release-state.ps1 `
+            -Version "v$env:RELEASE_VERSION" -Commit "$env:RELEASE_COMMIT" `
+            -File "$env:VSIX_FILE" -Repository "$env:GITHUB_REPOSITORY"
 
       - name: Create GitHub draft release
+        if: steps.release-state.outputs.create == 'true'
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
